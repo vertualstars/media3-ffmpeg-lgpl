@@ -1,0 +1,16 @@
+# Gradle / IDE
+.gradle/
+build/
+.idea/
+*.iml
+local.properties
+.kotlin/
+.cxx/
+
+# FFmpeg source checkout and build products - fetched and built by ffmpeg/build.sh, never committed
+ffmpeg/src/
+ffmpeg/out/
+lib/src/main/jniLibs/
+
+# Release staging assembled by ffmpeg/record.sh
+dist/
