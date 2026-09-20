@@ -51,8 +51,11 @@ jobs:
       # case a freshly installed package needs one.
       - name: Install the NDK, CMake and the platform
         run: |
-          yes | sdkmanager --licenses >/dev/null 2>&1 || true
-          sdkmanager --install \
+          # cmdline-tools/latest/bin is not on PATH inside a step; ANDROID_HOME is set by the image.
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$SDKMANAGER" || { echo "sdkmanager not found at $SDKMANAGER"; ls "$ANDROID_HOME"; exit 1; }
+          yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
+          "$SDKMANAGER" --install \
             "ndk;${{ steps.props.outputs.ndk_version }}" \
             "cmake;${{ steps.props.outputs.cmake_version }}" \
             "platforms;android-${{ steps.props.outputs.lib_compileSdk }}"
@@ -139,8 +142,11 @@ jobs:
       # case a freshly installed package needs one.
       - name: Install the NDK, CMake and the platform
         run: |
-          yes | sdkmanager --licenses >/dev/null 2>&1 || true
-          sdkmanager --install \
+          # cmdline-tools/latest/bin is not on PATH inside a step; ANDROID_HOME is set by the image.
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$SDKMANAGER" || { echo "sdkmanager not found at $SDKMANAGER"; ls "$ANDROID_HOME"; exit 1; }
+          yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
+          "$SDKMANAGER" --install \
             "ndk;${{ steps.props.outputs.ndk_version }}" \
             "cmake;${{ steps.props.outputs.cmake_version }}" \
             "platforms;android-${{ steps.props.outputs.lib_compileSdk }}"
