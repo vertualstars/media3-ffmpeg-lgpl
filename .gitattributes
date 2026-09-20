@@ -1,0 +1,7 @@
+# Shell scripts and the Gradle wrapper must be LF on every checkout: a CRLF gradlew or build.sh
+# fails on Linux (and in CI) with "bad interpreter" or "\r: command not found".
+* text=auto
+*.sh text eol=lf
+gradlew text eol=lf
+*.bat text eol=crlf
+*.jar binary
