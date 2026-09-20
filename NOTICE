@@ -1,0 +1,42 @@
+media3-ffmpeg-lgpl
+Copyright (c) 2026 the media3-ffmpeg-lgpl contributors
+
+Licensed under the Apache License, Version 2.0 (see LICENSE). That licence covers what this
+repository itself contributes: the build system, CI, scripts, tests and documentation.
+
+--------------------------------------------------------------------------------------------
+
+This repository includes the following files from Jetpack Media3
+(https://github.com/androidx/media), tag 1.11.0, Copyright (C) The Android Open Source Project,
+licensed under the Apache License, Version 2.0:
+
+  lib/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegAudioDecoder.java
+  lib/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegAudioRenderer.java
+  lib/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegDecoderException.java
+  lib/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegLibrary.java   (MODIFIED - see below)
+  lib/src/main/java/androidx/media3/decoder/ffmpeg/package-info.java
+  lib/src/main/jni/ffmpeg_jni.cc
+  lib/consumer-rules.pro                                                (first two rules)
+
+Modification (Apache License 2.0, section 4(b)): FfmpegLibrary.java loads libavutil,
+libswresample and libavcodec before libffmpegJNI, because this distribution links FFmpeg
+dynamically rather than statically. The change is marked in the file. Nothing else is changed.
+
+--------------------------------------------------------------------------------------------
+
+The build output (the .aar) contains FFmpeg (https://ffmpeg.org), Copyright (c) the FFmpeg
+developers, licensed under the GNU Lesser General Public License, version 2.1 or later
+(https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html).
+
+FFmpeg is NOT included in this repository. It is fetched from source at the tag pinned in
+gradle.properties (ffmpeg.tag) and built unmodified with --disable-gpl --disable-nonfree, so
+only LGPL components are present. The exact tag, commit, configure options and checksums of
+each build are in BUILD_RECORD.md, attached to every release together with a source archive
+of that exact commit.
+
+FFmpeg is linked dynamically: libavutil.so, libswresample.so and libavcodec.so are separate
+files inside the .aar and may be replaced by any compatible build.
+
+Codec patents (Dolby AC-3, E-AC-3 and TrueHD; DTS; and others) are not licensed by this
+project, and no open-source licence covers them. Whether a patent licence is needed depends on
+what you ship, where, and to whom.

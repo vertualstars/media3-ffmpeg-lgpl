@@ -1108,25 +1108,30 @@ check_alignment() {  # every LOAD segment aligned to the page size
   [[ -z "$bad" ]] || fail "$label: LOAD segment alignment $bad, expected $ALIGN_HEX (16 KB pages)"
 }
 check_no_textrel() {
-  local so="$1" label="$2"
-  if "$READELF" -d "$so" | grep -q 'TEXTREL'; then fail "$label: has text relocations (Android refuses to load it)"; fi
+  local so="$1" label="$2" dyn
+  dyn="$("$READELF" -d "$so")"
+  if grep -q 'TEXTREL' <<<"$dyn"; then fail "$label: has text relocations (Android refuses to load it)"; fi
 }
 check_ffmpeg_lib() {  # licence string and plain soname
-  local so="$1" label="$2" name="$3" soname
-  "$STRINGS" "$so" | grep -q 'license: LGPL version 2.1 or later' || fail "$label: LGPL-2.1 licence string not found"
-  if "$STRINGS" "$so" | grep -qE 'license: (GPL|nonfree)'; then fail "$label: GPL or nonfree licence string present"; fi
-  soname="$("$READELF" -d "$so" | grep 'SONAME' | grep -oE '\[[^]]+\]' | tr -d '[]' || true)"
+  local so="$1" label="$2" name="$3" strs dyn soname
+  strs="$("$STRINGS" "$so")"
+  grep -q 'license: LGPL version 2.1 or later' <<<"$strs" || fail "$label: LGPL-2.1 licence string not found"
+  if grep -qE 'license: (GPL|nonfree)' <<<"$strs"; then fail "$label: GPL or nonfree licence string present"; fi
+  dyn="$("$READELF" -d "$so")"
+  soname="$(grep 'SONAME' <<<"$dyn" | grep -oE '\[[^]]+\]' | tr -d '[]' || true)"
   [[ "$soname" == "$name" ]] || fail "$label: SONAME is '$soname', expected '$name'"
 }
 check_jni_lib() {  # plain NEEDED entries and exported JNI symbols
-  local so="$1" label="$2" need sym needed
-  needed="$("$READELF" -d "$so" | grep 'NEEDED' || true)"
+  local so="$1" label="$2" need sym dyn needed syms
+  dyn="$("$READELF" -d "$so")"
+  needed="$(grep 'NEEDED' <<<"$dyn" || true)"
   for need in libavcodec.so libavutil.so libswresample.so; do
     grep -q "\[$need\]" <<<"$needed" || fail "$label: missing NEEDED $need"
   done
-  if grep -qE '\[lib(avcodec|avutil|swresample)\.so\.[0-9]' <<<"$needed"; then fail "$label: versioned NEEDED entry (soname patching failed)"; fi
+  if grep -qE '\[lib(avcodec|avutil|swresample)\.so\.[0-9]' <<<"$needed"; then fail "$label: versioned NEEDED entry (soname handling failed)"; fi
+  syms="$("$NM" -D "$so")"
   for sym in "${JNI_SYMBOLS[@]}"; do
-    "$NM" -D "$so" | grep -qE " T $sym\$" || fail "$label: does not export $sym"
+    grep -qE " T $sym\$" <<<"$syms" || fail "$label: does not export $sym"
   done
 }
 
@@ -1150,8 +1155,9 @@ for abi in $ABIS; do
 done
 
 if [[ -f "$EXTRACTED/classes.jar" ]]; then
+  listing="$(unzip -l "$EXTRACTED/classes.jar")"
   for cls in FfmpegAudioRenderer FfmpegLibrary FfmpegAudioDecoder; do
-    unzip -l "$EXTRACTED/classes.jar" | grep -q "androidx/media3/decoder/ffmpeg/$cls.class" || fail "classes.jar lacks $cls.class"
+    grep -q "androidx/media3/decoder/ffmpeg/$cls.class" <<<"$listing" || fail "classes.jar lacks $cls.class"
   done
 else
   fail "missing classes.jar"
@@ -1356,13 +1362,13 @@ git -C "$SRC" archive --format=tar.gz --prefix="ffmpeg-$TAG/" -o "$DIST/$TARBALL
   echo
   echo '```'
   ( cd "$DIST" && sha "$AAR_NAME" "$TARBALL" )
-  ( cd "$EXTRACTED" && find jni -name '*.so' | sort | xargs sha )
+  ( cd "$EXTRACTED" && find jni -name '*.so' | sort | while read -r f; do sha "$f"; done )
   echo '```'
 } > "$DIST/BUILD_RECORD.md"
 
 {
   ( cd "$DIST" && sha "$AAR_NAME" "$TARBALL" )
-  ( cd "$EXTRACTED" && find jni -name '*.so' | sort | xargs sha )
+  ( cd "$EXTRACTED" && find jni -name '*.so' | sort | while read -r f; do sha "$f"; done )
 } > "$DIST/SHA256SUMS"
 
 cat > "$DIST/ffmpeg-corresponding-source.txt" <<EOF
