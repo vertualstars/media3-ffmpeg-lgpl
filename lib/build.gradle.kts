@@ -124,7 +124,7 @@ publishing {
                     "FFmpeg audio decoders for Jetpack Media3 $media3Version, built from source " +
                         "LGPL-only (--disable-gpl --disable-nonfree) as shared libraries."
                 )
-                url.set("https://github.com/CHANGEME/media3-ffmpeg-lgpl")
+                url.set("https://github.com/vertualstars/media3-ffmpeg-lgpl")
                 licenses {
                     license {
                         name.set("Apache-2.0")
@@ -138,7 +138,7 @@ publishing {
                     }
                 }
                 scm {
-                    url.set("https://github.com/CHANGEME/media3-ffmpeg-lgpl")
+                    url.set("https://github.com/vertualstars/media3-ffmpeg-lgpl")
                 }
             }
         }

@@ -4,7 +4,7 @@ FFmpeg audio decoders for [Jetpack Media3](https://developer.android.com/media/m
 built from source **LGPL-only** and shipped as a single `.aar`. Plays DTS, DTS-HD, Dolby TrueHD,
 AC-3, E-AC-3, Vorbis, Opus, FLAC, ALAC, µ-law and A-law where the device's hardware decoders cannot.
 
-[![build](https://github.com/CHANGEME/media3-ffmpeg-lgpl/actions/workflows/build.yml/badge.svg)](https://github.com/CHANGEME/media3-ffmpeg-lgpl/actions/workflows/build.yml)
+[![build](https://github.com/vertualstars/media3-ffmpeg-lgpl/actions/workflows/build.yml/badge.svg)](https://github.com/vertualstars/media3-ffmpeg-lgpl/actions/workflows/build.yml)
 
 ## Why this exists
 
@@ -20,7 +20,7 @@ Every build checks that claim mechanically - see *What CI verifies* below.
 ## Use it
 
 **1.** Download `media3-ffmpeg-lgpl-<version>.aar` from
-[Releases](https://github.com/CHANGEME/media3-ffmpeg-lgpl/releases) into your app's `libs/`.
+[Releases](https://github.com/vertualstars/media3-ffmpeg-lgpl/releases) into your app's `libs/`.
 
 **2.** Depend on it, with the **exact** media3 version the AAR was built for (it is in the file
 name and in `BUILD_RECORD.md`; the classes link against `@UnstableApi` internals, so a different
