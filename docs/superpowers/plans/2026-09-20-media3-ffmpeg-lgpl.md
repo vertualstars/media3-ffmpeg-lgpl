@@ -613,14 +613,26 @@ export ANDROID_NDK_HOME="${TMPDIR:-/tmp}/fake-ndk-$$"
 export FFMPEG_HOST_TAG="linux-x86_64"
 TOOLCHAIN="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
 
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+
+# The printed configuration for one ABI, generated once and grepped as a file. Never pipe the
+# live process into `grep -q`: under pipefail, grep exiting at the first match sends the
+# producer SIGPIPE and the pipeline reports failure even though the line was there.
+config_of() {
+  local file="$WORK/$1.txt"
+  [[ -f "$file" ]] || "$BUILD" --print-config "$1" > "$file"
+  printf '%s' "$file"
+}
+
 fails=0
 expect() {  # expect <abi> <exact line>
-  if ! "$BUILD" --print-config "$1" | grep -qxF -- "$2"; then
+  if ! grep -qxF -- "$2" "$(config_of "$1")"; then
     echo "FAIL [$1] expected line: $2"; fails=$((fails + 1))
   fi
 }
 reject() {  # reject <abi> <exact line>
-  if "$BUILD" --print-config "$1" | grep -qxF -- "$2"; then
+  if grep -qxF -- "$2" "$(config_of "$1")"; then
     echo "FAIL [$1] must not contain: $2"; fails=$((fails + 1))
   fi
 }
@@ -655,7 +667,7 @@ for abi in arm64-v8a armeabi-v7a x86_64; do
   for d in $DECODERS; do expect "$abi" "--enable-decoder=$d"; done
   # Exactly the configured decoders, no more.
   n_expected="$(echo "$DECODERS" | wc -w | tr -d ' ')"
-  n_actual="$("$BUILD" --print-config "$abi" | grep -c -- '^--enable-decoder=')"
+  n_actual="$(grep -c -- '^--enable-decoder=' "$(config_of "$abi")")"
   if [[ "$n_expected" != "$n_actual" ]]; then
     echo "FAIL [$abi] $n_actual --enable-decoder lines, expected $n_expected"; fails=$((fails + 1))
   fi
