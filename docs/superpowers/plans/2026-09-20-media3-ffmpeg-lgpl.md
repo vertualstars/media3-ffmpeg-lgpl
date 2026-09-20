@@ -6,14 +6,14 @@
 
 **Architecture:** media3's own Apache-2.0 `decoder_ffmpeg` extension (4 Java classes + one JNI file, copied at tag 1.11.0, one file modified) is wrapped in an Android library module. A shell script builds FFmpeg `n7.1.5` per ABI as **shared** libraries with `--disable-gpl --disable-nonfree` and 16 KB page alignment; CMake links a thin `libffmpegJNI.so` against them; Gradle packages everything into an AAR. A verification script and an instrumented smoke test on a 16 KB-page emulator gate every build; tags produce GitHub Releases with an LGPL §6 build record.
 
-**Tech Stack:** Bash, FFmpeg n7.1.5, Android NDK r27c (`27.2.12479018`), CMake 3.22.1, AGP 9.2.1, Gradle 9.4.1, JDK 21, Java 11 sources, GitHub Actions (`ubuntu-24.04`), `reactivecircus/android-emulator-runner@v2`.
+**Tech Stack:** Bash, FFmpeg n7.1.5, Android NDK r27c (`27.3.13750724`), CMake 3.22.1, AGP 9.2.1, Gradle 9.4.1, JDK 21, Java 11 sources, GitHub Actions (`ubuntu-24.04`), `reactivecircus/android-emulator-runner@v2`.
 
 **Spec:** `docs/superpowers/specs/2026-09-20-media3-ffmpeg-lgpl-design.md`
 
 ## Global Constraints
 
 - Repository root: `D:\android_app\media3-ffmpeg-lgpl` (git already initialised; one commit containing the spec).
-- Every version and list lives in `gradle.properties` and nowhere else: `media3.version=1.11.0`, `ffmpeg.tag=n7.1.5`, `ffmpeg.decoders=ac3 eac3 truehd dca vorbis opus flac alac pcm_mulaw pcm_alaw`, `ffmpeg.abis=arm64-v8a armeabi-v7a x86_64`, `ffmpeg.pageSize=16384`, `ndk.version=27.2.12479018`, `cmake.version=3.22.1`, `lib.minSdk=24`, `lib.compileSdk=36`, `publish.group=io.github.CHANGEME`, `publish.artifact=media3-ffmpeg-lgpl`, `publish.version=1.11.0-SNAPSHOT`. Never prefix a custom key with `android.`.
+- Every version and list lives in `gradle.properties` and nowhere else: `media3.version=1.11.0`, `ffmpeg.tag=n7.1.5`, `ffmpeg.decoders=ac3 eac3 truehd dca vorbis opus flac alac pcm_mulaw pcm_alaw`, `ffmpeg.abis=arm64-v8a armeabi-v7a x86_64`, `ffmpeg.pageSize=16384`, `ndk.version=27.3.13750724`, `cmake.version=3.22.1`, `lib.minSdk=24`, `lib.compileSdk=36`, `publish.group=io.github.CHANGEME`, `publish.artifact=media3-ffmpeg-lgpl`, `publish.version=1.11.0-SNAPSHOT`. Never prefix a custom key with `android.`.
 - Upstream files come from `https://raw.githubusercontent.com/androidx/media/1.11.0/libraries/decoder_ffmpeg/...` and are copied byte-for-byte except `FfmpegLibrary.java` (load order). `ExperimentalFfmpegVideoRenderer.java` is **not** copied.
 - FFmpeg ships as `libavutil.so`, `libswresample.so`, `libavcodec.so` (shared) + `libffmpegJNI.so`. Never static.
 - Java package stays `androidx.media3.decoder.ffmpeg` (media3 finds the renderer by reflection on that name).
@@ -68,7 +68,7 @@ ffmpeg.tag=n7.1.5
 ffmpeg.decoders=ac3 eac3 truehd dca vorbis opus flac alac pcm_mulaw pcm_alaw
 ffmpeg.abis=arm64-v8a armeabi-v7a x86_64
 ffmpeg.pageSize=16384
-ndk.version=27.2.12479018
+ndk.version=27.3.13750724
 cmake.version=3.22.1
 lib.minSdk=24
 lib.compileSdk=36
@@ -1801,7 +1801,7 @@ Linux or macOS (on Windows use WSL; the NDK ships no Windows-native FFmpeg toolc
 support). Needs `git`, `make`, a JDK 21, and the Android NDK:
 
 ```bash
-sdkmanager "ndk;27.2.12479018" "cmake;3.22.1" "platforms;android-36"
+sdkmanager "ndk;27.3.13750724" "cmake;3.22.1" "platforms;android-36"
 ./ffmpeg/build.sh              # clones FFmpeg at the pinned tag, builds every ABI (~10-15 min)
 ./gradlew :lib:assembleRelease # links libffmpegJNI.so and packages the AAR
 ./ffmpeg/verify.sh             # the checks above

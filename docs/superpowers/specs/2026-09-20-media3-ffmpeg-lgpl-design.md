@@ -64,7 +64,7 @@ in the same position can use it.
 - media3's `DefaultRenderersFactory` locates the renderer by reflection on the exact class name
   `androidx.media3.decoder.ffmpeg.FfmpegAudioRenderer`; its consumer ProGuard rules keep that
   constructor. Keeping the package name is what makes integration a one-line change.
-- sdkmanager package strings verified present: `ndk;27.2.12479018`, `cmake;3.22.1`,
+- sdkmanager package strings verified present: `ndk;27.3.13750724`, `cmake;3.22.1`,
   `system-images;android-35;google_apis_ps16k;x86_64`.
 - `ReactiveCircus/android-emulator-runner@v2` passes `target` through unvalidated (it has a
   `ps16k` shorthand), so a 16 KB-page image can be used for the smoke test.
@@ -115,7 +115,7 @@ ffmpeg.tag=n7.1.5
 ffmpeg.decoders=ac3 eac3 truehd dca vorbis opus flac alac pcm_mulaw pcm_alaw
 ffmpeg.abis=arm64-v8a armeabi-v7a x86_64
 ffmpeg.pageSize=16384
-ndk.version=27.2.12479018
+ndk.version=27.3.13750724
 cmake.version=3.22.1
 lib.minSdk=24
 lib.compileSdk=36

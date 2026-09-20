@@ -107,7 +107,7 @@ Linux or macOS (on Windows use WSL - FFmpeg's build does not run natively there)
 `make`, a JDK 21, and the Android NDK:
 
 ```bash
-sdkmanager "ndk;27.2.12479018" "cmake;3.22.1" "platforms;android-36"
+sdkmanager "ndk;27.3.13750724" "cmake;3.22.1" "platforms;android-36"
 ./ffmpeg/build.sh              # clones FFmpeg at the pinned tag, builds every ABI (~10-15 min)
 ./gradlew :lib:assembleRelease # links libffmpegJNI.so and packages the AAR
 ./ffmpeg/verify.sh             # the checks above

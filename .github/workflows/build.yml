@@ -45,10 +45,13 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - uses: android-actions/setup-android@v3
-
+      # The ubuntu-24.04 image ships the Android SDK with sdkmanager on PATH and ANDROID_HOME set,
+      # so no third-party setup action is needed - the one this used to call fails on its own
+      # defaults (it installs the retired "tools" package). Licences are accepted explicitly in
+      # case a freshly installed package needs one.
       - name: Install the NDK, CMake and the platform
         run: |
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
           sdkmanager --install \
             "ndk;${{ steps.props.outputs.ndk_version }}" \
             "cmake;${{ steps.props.outputs.cmake_version }}" \
@@ -130,10 +133,13 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - uses: android-actions/setup-android@v3
-
+      # The ubuntu-24.04 image ships the Android SDK with sdkmanager on PATH and ANDROID_HOME set,
+      # so no third-party setup action is needed - the one this used to call fails on its own
+      # defaults (it installs the retired "tools" package). Licences are accepted explicitly in
+      # case a freshly installed package needs one.
       - name: Install the NDK, CMake and the platform
         run: |
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
           sdkmanager --install \
             "ndk;${{ steps.props.outputs.ndk_version }}" \
             "cmake;${{ steps.props.outputs.cmake_version }}" \
