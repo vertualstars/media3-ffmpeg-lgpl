@@ -108,6 +108,10 @@ dependencies {
     compileOnly("org.checkerframework:checker-qual:4.2.3")
 
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    // ext:junit does not depend on the runner (its POM lists core, monitor and storage only), and
+    // without this the test APK crashes at startup with ClassNotFoundException for
+    // androidx.test.runner.AndroidJUnitRunner - before a single test runs.
+    androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("junit:junit:4.13.2")
 }
 

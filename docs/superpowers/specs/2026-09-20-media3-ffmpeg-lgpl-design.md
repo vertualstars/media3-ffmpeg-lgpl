@@ -198,7 +198,8 @@ refuses to load; `--disable-asm` on x86_64 is what keeps that flag satisfiable t
 - Dependencies: `api media3-exoplayer`, `api media3-decoder`, `api media3-common` (all
   `media3.version`); `implementation androidx.annotation:annotation:1.9.1`;
   `compileOnly org.checkerframework:checker-qual:4.2.3`; `androidTestImplementation
-  androidx.test.ext:junit:1.3.0` and `junit:junit:4.13.2`.
+  androidx.test.ext:junit:1.3.0`, `androidx.test:runner:1.7.0` (ext:junit does not pull the
+  runner in; without it the test APK cannot even start) and `junit:junit:4.13.2`.
 - Publishing: `singleVariant("release") { withSourcesJar() }`; one `MavenPublication` from
   `components["release"]` with group/artifact/version from properties and a POM carrying name,
   description, Apache-2.0 licence, and an explicit note that the binary contains LGPL FFmpeg.
