@@ -169,16 +169,19 @@ fetch_source() {
 }
 
 # Refuse to compile anything that is not LGPL-2.1+ or that is missing a requested decoder.
+# The licence flags live in config.h; the per-component flags moved to config_components.h in
+# FFmpeg 5.1, so the decoder check reads that file (falling back to config.h for older trees).
 check_config_h() {
-  local abi="$1" cfg="$SRC/config.h" d name
+  local abi="$1" cfg="$SRC/config.h" comp="$SRC/config_components.h" d name
+  [[ -f "$comp" ]] || comp="$cfg"
   grep -qxF '#define FFMPEG_LICENSE "LGPL version 2.1 or later"' "$cfg" \
     || die "$abi: config.h is not LGPL-2.1+: $(grep FFMPEG_LICENSE "$cfg")"
   grep -qxF '#define CONFIG_GPL 0' "$cfg"     || die "$abi: CONFIG_GPL is not 0"
   grep -qxF '#define CONFIG_NONFREE 0' "$cfg" || die "$abi: CONFIG_NONFREE is not 0"
   for d in $DECODERS; do
     name="$(printf '%s' "$d" | tr '[:lower:]' '[:upper:]')"
-    grep -qxF "#define CONFIG_${name}_DECODER 1" "$cfg" \
-      || die "$abi: decoder '$d' is not enabled in config.h - is it a valid FFmpeg decoder name?"
+    grep -qxF "#define CONFIG_${name}_DECODER 1" "$comp" \
+      || die "$abi: decoder '$d' is not enabled in $(basename "$comp") - is it a valid FFmpeg decoder name?"
   done
 }
 
@@ -199,6 +202,7 @@ build_abi() {
       die "$abi: configure failed (full command in $OUT/$abi/configure.cmd)"
     fi
     cp config.h "$OUT/$abi/config.h"
+    if [[ -f config_components.h ]]; then cp config_components.h "$OUT/$abi/config_components.h"; fi
   )
   check_config_h "$abi"
 

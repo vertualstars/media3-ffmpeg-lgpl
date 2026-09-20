@@ -17,17 +17,18 @@ EXTRACTED="$WORK/aar"
 export FFMPEG_OUT_DIR="$WORK/out"
 mkdir -p "$EXTRACTED"
 
-# config.h for every ABI, with the LAST configured decoder deliberately missing.
+# config.h (licence) and config_components.h (decoders, as FFmpeg 5.1+ lays them out) for every
+# ABI, with the LAST configured decoder deliberately missing.
 last="${DECODERS##* }"
 for abi in $ABIS; do
   mkdir -p "$FFMPEG_OUT_DIR/$abi"
+  echo '#define FFMPEG_LICENSE "LGPL version 2.1 or later"' > "$FFMPEG_OUT_DIR/$abi/config.h"
   {
-    echo '#define FFMPEG_LICENSE "LGPL version 2.1 or later"'
     for d in $DECODERS; do
       [[ "$d" == "$last" ]] && continue
       echo "#define CONFIG_$(printf '%s' "$d" | tr '[:lower:]' '[:upper:]')_DECODER 1"
     done
-  } > "$FFMPEG_OUT_DIR/$abi/config.h"
+  } > "$FFMPEG_OUT_DIR/$abi/config_components.h"
 done
 
 set +e
@@ -43,7 +44,7 @@ must() {  # must <substring>
 for abi in $ABIS; do
   must "$abi: missing jni/$abi/libavutil.so"
   must "$abi: missing jni/$abi/libffmpegJNI.so"
-  must "$abi: decoder '$last' is not enabled in config.h"
+  must "$abi: decoder '$last' is not enabled in config_components.h"
 done
 must "missing classes.jar"
 must "missing proguard.txt"

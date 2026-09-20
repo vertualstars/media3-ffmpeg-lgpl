@@ -123,12 +123,14 @@ for abi in $ABIS; do
     check_no_textrel "$so" "$rel"
     if [[ "$lib" == ffmpegJNI ]]; then check_jni_lib "$so" "$rel"; else check_ffmpeg_lib "$so" "$rel" "lib$lib.so"; fi
   done
-  cfg="$OUT/$abi/config.h"
+  cfg="$OUT/$abi/config.h"; comp="$OUT/$abi/config_components.h"
   if [[ ! -f "$cfg" ]]; then fail "$abi: missing $cfg"; continue; fi
+  # Per-component flags moved from config.h to config_components.h in FFmpeg 5.1.
+  [[ -f "$comp" ]] || comp="$cfg"
   grep -qxF '#define FFMPEG_LICENSE "LGPL version 2.1 or later"' "$cfg" || fail "$abi: config.h licence is not LGPL-2.1+"
   for d in $DECODERS; do
-    grep -qxF "#define CONFIG_$(printf '%s' "$d" | tr '[:lower:]' '[:upper:]')_DECODER 1" "$cfg" \
-      || fail "$abi: decoder '$d' is not enabled in config.h"
+    grep -qxF "#define CONFIG_$(printf '%s' "$d" | tr '[:lower:]' '[:upper:]')_DECODER 1" "$comp" \
+      || fail "$abi: decoder '$d' is not enabled in $(basename "$comp")"
   done
 done
 

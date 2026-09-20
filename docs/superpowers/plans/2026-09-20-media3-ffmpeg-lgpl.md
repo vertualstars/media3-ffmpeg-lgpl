@@ -878,16 +878,19 @@ fetch_source() {
 }
 
 # Refuse to compile anything that is not LGPL-2.1+ or that is missing a requested decoder.
+# The licence flags live in config.h; the per-component flags moved to config_components.h in
+# FFmpeg 5.1, so the decoder check reads that file (falling back to config.h for older trees).
 check_config_h() {
-  local abi="$1" cfg="$SRC/config.h" d name
+  local abi="$1" cfg="$SRC/config.h" comp="$SRC/config_components.h" d name
+  [[ -f "$comp" ]] || comp="$cfg"
   grep -qxF '#define FFMPEG_LICENSE "LGPL version 2.1 or later"' "$cfg" \
     || die "$abi: config.h is not LGPL-2.1+: $(grep FFMPEG_LICENSE "$cfg")"
   grep -qxF '#define CONFIG_GPL 0' "$cfg"     || die "$abi: CONFIG_GPL is not 0"
   grep -qxF '#define CONFIG_NONFREE 0' "$cfg" || die "$abi: CONFIG_NONFREE is not 0"
   for d in $DECODERS; do
     name="$(printf '%s' "$d" | tr '[:lower:]' '[:upper:]')"
-    grep -qxF "#define CONFIG_${name}_DECODER 1" "$cfg" \
-      || die "$abi: decoder '$d' is not enabled in config.h - is it a valid FFmpeg decoder name?"
+    grep -qxF "#define CONFIG_${name}_DECODER 1" "$comp" \
+      || die "$abi: decoder '$d' is not enabled in $(basename "$comp") - is it a valid FFmpeg decoder name?"
   done
 }
 
@@ -1145,12 +1148,14 @@ for abi in $ABIS; do
     check_no_textrel "$so" "$rel"
     if [[ "$lib" == ffmpegJNI ]]; then check_jni_lib "$so" "$rel"; else check_ffmpeg_lib "$so" "$rel" "lib$lib.so"; fi
   done
-  cfg="$OUT/$abi/config.h"
+  cfg="$OUT/$abi/config.h"; comp="$OUT/$abi/config_components.h"
   if [[ ! -f "$cfg" ]]; then fail "$abi: missing $cfg"; continue; fi
+  # Per-component flags moved from config.h to config_components.h in FFmpeg 5.1.
+  [[ -f "$comp" ]] || comp="$cfg"
   grep -qxF '#define FFMPEG_LICENSE "LGPL version 2.1 or later"' "$cfg" || fail "$abi: config.h licence is not LGPL-2.1+"
   for d in $DECODERS; do
-    grep -qxF "#define CONFIG_$(printf '%s' "$d" | tr '[:lower:]' '[:upper:]')_DECODER 1" "$cfg" \
-      || fail "$abi: decoder '$d' is not enabled in config.h"
+    grep -qxF "#define CONFIG_$(printf '%s' "$d" | tr '[:lower:]' '[:upper:]')_DECODER 1" "$comp" \
+      || fail "$abi: decoder '$d' is not enabled in $(basename "$comp")"
   done
 done
 

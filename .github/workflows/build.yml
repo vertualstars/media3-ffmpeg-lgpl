@@ -85,6 +85,7 @@ jobs:
             ffmpeg/src/ffbuild/config.log
             ffmpeg/out/*/configure.cmd
             ffmpeg/out/*/config.h
+            ffmpeg/out/*/config_components.h
 
       - name: Upload dist
         uses: actions/upload-artifact@v4
@@ -102,6 +103,7 @@ jobs:
             lib/src/main/jniLibs/**
             ffmpeg/out/*/include/**
             ffmpeg/out/*/config.h
+            ffmpeg/out/*/config_components.h
             ffmpeg/out/*/configure.cmd
             ffmpeg/out/ffmpeg-commit.txt
             ffmpeg/out/ffmpeg-tag.txt
