@@ -1,0 +1,200 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build FFmpeg (LGPL, shared, 16 KB pages) and the AAR
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read gradle.properties
+        id: props
+        run: |
+          for key in ndk.version cmake.version lib.compileSdk ffmpeg.tag publish.version; do
+            value="$(grep -E "^${key}=" gradle.properties | cut -d= -f2- | tr -d '\r')"
+            echo "${key//./_}=${value}" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Decide the version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${{ steps.props.outputs.publish_version }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install the NDK, CMake and the platform
+        run: |
+          sdkmanager --install \
+            "ndk;${{ steps.props.outputs.ndk_version }}" \
+            "cmake;${{ steps.props.outputs.cmake_version }}" \
+            "platforms;android-${{ steps.props.outputs.lib_compileSdk }}"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # build.sh finds the NDK under $ANDROID_HOME/ndk/<ndk.version>; sdkmanager put it there.
+      - name: Build FFmpeg
+        run: ./ffmpeg/build.sh
+
+      - name: Build the AAR
+        run: ./gradlew :lib:assembleRelease -Ppublish.version="${{ steps.version.outputs.version }}" --no-daemon --stacktrace
+
+      - name: Verify the AAR
+        run: ./ffmpeg/verify.sh
+
+      - name: Assemble dist
+        run: ./ffmpeg/record.sh lib/build/outputs/aar/media3-ffmpeg-lgpl-release.aar "${{ steps.version.outputs.version }}"
+
+      - name: Upload configure logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-configure-logs
+          if-no-files-found: ignore
+          path: |
+            ffmpeg/src/ffbuild/config.log
+            ffmpeg/out/*/configure.cmd
+            ffmpeg/out/*/config.h
+
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          if-no-files-found: error
+          path: dist/
+
+      - name: Upload native outputs for the smoke test
+        uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-native
+          if-no-files-found: error
+          path: |
+            lib/src/main/jniLibs/**
+            ffmpeg/out/*/include/**
+            ffmpeg/out/*/config.h
+            ffmpeg/out/*/configure.cmd
+            ffmpeg/out/ffmpeg-commit.txt
+            ffmpeg/out/ffmpeg-tag.txt
+
+  smoke:
+    name: Smoke test on a 16 KB-page emulator
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read gradle.properties
+        id: props
+        run: |
+          for key in ndk.version cmake.version lib.compileSdk; do
+            value="$(grep -E "^${key}=" gradle.properties | cut -d= -f2- | tr -d '\r')"
+            echo "${key//./_}=${value}" >> "$GITHUB_OUTPUT"
+          done
+
+      # The artifact root is the repository root (least common ancestor of its paths), so this
+      # restores lib/src/main/jniLibs and ffmpeg/out exactly where the build job left them.
+      - uses: actions/download-artifact@v4
+        with:
+          name: ffmpeg-native
+          path: .
+
+      - name: Confirm the native outputs are in place
+        run: ls -R lib/src/main/jniLibs && ls ffmpeg/out
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install the NDK, CMake and the platform
+        run: |
+          sdkmanager --install \
+            "ndk;${{ steps.props.outputs.ndk_version }}" \
+            "cmake;${{ steps.props.outputs.cmake_version }}" \
+            "platforms;android-${{ steps.props.outputs.lib_compileSdk }}"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # google_apis_ps16k is a 16 KB page-size system image: this is where "aligned in the ELF
+      # headers" becomes "loads on a 16 KB kernel".
+      - name: Run the instrumented smoke test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis_ps16k
+          arch: x86_64
+          ram-size: 3072M
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: ./gradlew :lib:connectedDebugAndroidTest --no-daemon --stacktrace
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test-reports
+          if-no-files-found: ignore
+          path: |
+            lib/build/reports/androidTests/**
+            lib/build/outputs/androidTest-results/**
+
+  release:
+    name: GitHub Release
+    needs: [build, smoke]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Show what will be released
+        run: ls -la dist && cat dist/SHA256SUMS
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: media3-ffmpeg-lgpl ${{ needs.build.outputs.version }}
+          body_path: dist/BUILD_RECORD.md
+          files: |
+            dist/*.aar
+            dist/BUILD_RECORD.md
+            dist/SHA256SUMS
+            dist/ffmpeg-corresponding-source.txt
+            dist/ffmpeg-*-src.tar.gz
+            dist/NOTICE
+            dist/LICENSE
